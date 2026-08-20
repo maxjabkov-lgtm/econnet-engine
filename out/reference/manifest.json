@@ -1,0 +1,69 @@
+{
+  "engine": "econnet",
+  "generatedAt": "2026-08-20T00:00:00.000Z",
+  "runs": [
+    {
+      "file": "prisoners_dilemma",
+      "game": "prisoners_dilemma",
+      "regime": "II",
+      "subLabel": "goal misalignment (argmax Φ ≠ argmax W; Goodhart)",
+      "h": 0,
+      "welfareGap": 2,
+      "potentialGap": 0
+    },
+    {
+      "file": "coordination_low_basin",
+      "game": "coordination",
+      "regime": "I",
+      "subLabel": "landscape trap (settled below the global potential optimum)",
+      "h": 0,
+      "welfareGap": 1,
+      "potentialGap": 0.4999999999999999
+    },
+    {
+      "file": "coordination_high_basin",
+      "game": "coordination",
+      "regime": "I",
+      "subLabel": "landscape regime (reached the global, welfare-aligned optimum)",
+      "h": 0,
+      "welfareGap": 0,
+      "potentialGap": 0
+    },
+    {
+      "file": "rock_paper_scissors",
+      "game": "rock_paper_scissors",
+      "regime": "III",
+      "subLabel": "neutral center (conservative cycle, Re λ ≈ 0)",
+      "h": 0.9999999999999998,
+      "welfareGap": 5.551115123125783e-17,
+      "potentialGap": 6.409875621278547e-17
+    },
+    {
+      "file": "generalized_rps_unstable_focus",
+      "game": "generalized_rps",
+      "regime": "III",
+      "subLabel": "unstable focus → cycle (Re λ > 0)",
+      "h": 0.8523658961269198,
+      "welfareGap": 0.2,
+      "potentialGap": 0.10000000000000009
+    },
+    {
+      "file": "matching_pennies",
+      "game": "matching_pennies",
+      "regime": "III",
+      "subLabel": "neutral center (conservative cycle, Re λ ≈ 0)",
+      "h": 1,
+      "welfareGap": 0,
+      "potentialGap": 0
+    },
+    {
+      "file": "adaptive_drift",
+      "game": "adaptive",
+      "regime": "III",
+      "subLabel": "unstable focus → cycle (Re λ > 0)",
+      "h": 0.10819623689450696,
+      "welfareGap": 1.400949717667004,
+      "potentialGap": 0.20371801920609384
+    }
+  ]
+}

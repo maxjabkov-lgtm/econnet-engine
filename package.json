@@ -1,0 +1,21 @@
+{
+  "name": "econnet-engine",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "EconNet numerical-experiment engine: the failure regime (I/II/III) is COMPUTED from operator and trajectory properties, never set by a toggle.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "validate": "tsx src/harness/validate.ts",
+    "export": "tsx src/harness/exportRun.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "~5.7.2",
+    "vite": "^6.0.5"
+  }
+}

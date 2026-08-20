@@ -1,0 +1,67 @@
+:root {
+  --bg: #0e1116;
+  --panel: #161b22;
+  --edge: #2a3038;
+  --ink: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --I: #6ee7b7;
+  --II: #fbbf24;
+  --III: #f472b6;
+  --marginal: #8b949e;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+#app { display: grid; grid-template-columns: 340px 1fr; min-height: 100vh; }
+
+.sidebar { background: var(--panel); border-right: 1px solid var(--edge); padding: 18px; overflow-y: auto; }
+.stage { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+
+h1 { font-size: 15px; margin: 0 0 2px; letter-spacing: .3px; }
+.subtitle { color: var(--muted); font-size: 11px; margin-bottom: 18px; }
+
+.field { margin-bottom: 12px; }
+label { display: block; color: var(--muted); font-size: 11px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
+select, input[type="number"] {
+  width: 100%; background: var(--bg); color: var(--ink);
+  border: 1px solid var(--edge); border-radius: 6px; padding: 7px 8px; font: inherit;
+}
+.row { display: flex; gap: 8px; }
+.row > .field { flex: 1; }
+
+.buttons { display: flex; gap: 8px; margin-top: 8px; }
+button {
+  flex: 1; background: var(--accent); color: #0b0f14; border: 0; border-radius: 6px;
+  padding: 9px; font: inherit; font-weight: 600; cursor: pointer;
+}
+button.secondary { background: var(--edge); color: var(--ink); }
+button:disabled { opacity: .45; cursor: default; }
+
+.readout { background: var(--panel); border: 1px solid var(--edge); border-radius: 10px; padding: 16px; }
+.regime-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-weight: 700; color: #0b0f14; }
+.regime-I { background: var(--I); }
+.regime-II { background: var(--II); }
+.regime-III { background: var(--III); }
+.regime-marginal { background: var(--marginal); }
+
+.metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; margin-top: 14px; }
+.metric .k { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .5px; }
+.metric .v { font-size: 15px; }
+
+canvas { background: var(--panel); border: 1px solid var(--edge); border-radius: 10px; width: 100%; display: block; }
+
+.note { color: var(--muted); font-size: 11px; }
+.warn { color: var(--II); font-size: 11px; }
+.hbar { height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; border: 1px solid var(--edge); }
+.hbar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--I), var(--III)); }
+code { color: var(--accent); }
