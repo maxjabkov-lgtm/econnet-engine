@@ -4,20 +4,29 @@
 
 import { type Mat, type Vec, dot, norm2, symmetricEigen, zerosMat } from "./linalg.js";
 
-/** Centered sliding mean of a state series (per coordinate), half-window w. */
+/** Centered sliding mean of a state series (per coordinate), half-window w.
+ *  O(n·dim) via prefix sums (the window cost is independent of w). */
 export function slidingMean(states: Vec[], w: number): Vec[] {
   const n = states.length;
   const dim = states[0].length;
-  const out: Vec[] = [];
+  // prefix[i] = Σ states[0..i-1]  (length n+1)
+  const prefix: Vec[] = new Array(n + 1);
+  prefix[0] = new Array(dim).fill(0);
+  for (let i = 0; i < n; i++) {
+    const p = prefix[i];
+    const s = states[i];
+    const next = new Array(dim);
+    for (let d = 0; d < dim; d++) next[d] = p[d] + s[d];
+    prefix[i + 1] = next;
+  }
+  const out: Vec[] = new Array(n);
   for (let i = 0; i < n; i++) {
     const lo = Math.max(0, i - w);
     const hi = Math.min(n - 1, i + w);
-    const acc = new Array(dim).fill(0);
-    for (let j = lo; j <= hi; j++)
-      for (let d = 0; d < dim; d++) acc[d] += states[j][d];
     const cnt = hi - lo + 1;
-    for (let d = 0; d < dim; d++) acc[d] /= cnt;
-    out.push(acc);
+    const acc = new Array(dim);
+    for (let d = 0; d < dim; d++) acc[d] = (prefix[hi + 1][d] - prefix[lo][d]) / cnt;
+    out[i] = acc;
   }
   return out;
 }

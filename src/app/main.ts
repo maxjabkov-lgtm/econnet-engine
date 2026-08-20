@@ -84,7 +84,7 @@ PRESETS.forEach((p, i) => {
 presetSel.onchange = () => applyPreset(PRESETS[Number(presetSel.value)]);
 $<HTMLSelectElement>("dyn").onchange = (e) => { dynamics = (e.target as HTMLSelectElement).value as DynamicsKind; };
 $<HTMLButtonElement>("run").onclick = start;
-$<HTMLButtonElement>("pause").onclick = () => { post({ type: "pause" }); running = false; };
+$<HTMLButtonElement>("pause").onclick = () => { post({ type: "pause" }); running = false; runFullClassify(); };
 $<HTMLButtonElement>("reset").onclick = () => { post({ type: "reset" }); running = false; resetBuffer(); };
 
 function applyPreset(p: Preset): void {
@@ -124,10 +124,14 @@ function onMessage(m: WorkerToMain): void {
   } else if (m.type === "sample") {
     times.push(m.time);
     states.push(m.x);
+    // bound memory / per-frame draw cost on very long runs (drop oldest)
+    const MAX_BUFFER = 8000;
+    if (states.length > MAX_BUFFER) { states.shift(); times.shift(); }
     lastH = m.h;
     lastSpeed = m.speed;
   } else if (m.type === "done") {
     running = false;
+    runFullClassify();
   }
 }
 
@@ -142,26 +146,70 @@ function renderOperator(m: Extract<WorkerToMain, { type: "meta" }>): void {
     <div class="note" style="margin-top:6px">h→0 potential (landscape exists) · h→1 rotational (no landscape)</div>`;
 }
 
-// ---------------------------------------------------------------- live classify
-let lastClassify = 0;
-function maybeClassify(now: number): void {
-  if (now - lastClassify < 500 || states.length < 40) return;
-  lastClassify = now;
+// ---------------------------------------------------------------- readout
+// The full classifier is a BATCH analysis (O(n) over the whole trajectory) — far
+// too heavy to run every frame. During a run we show a cheap live hint (from the
+// worker's speed/h and the recent buffer radius); the rigorous verdict is
+// computed ONCE, when the run finishes or is paused.
+let lastLive = 0;
+
+function tailRadius(win: number): number {
+  const n = states.length;
+  if (n < 2) return 0;
+  const w = Math.min(win, n);
+  const dim = states[0].length;
+  const c = new Array(dim).fill(0);
+  for (let i = n - w; i < n; i++) for (let d = 0; d < dim; d++) c[d] += states[i][d];
+  for (let d = 0; d < dim; d++) c[d] /= w;
+  let r = 0;
+  for (let i = n - w; i < n; i++) { let s = 0; for (let d = 0; d < dim; d++) s += (states[i][d] - c[d]) ** 2; r = Math.max(r, Math.sqrt(s)); }
+  return r;
+}
+
+function renderLive(now: number): void {
+  // Only the live view updates the readout while running; once stopped, the
+  // one-off full verdict (runFullClassify) owns the panel and must not be
+  // overwritten by the cheap hint on the next frame.
+  if (!running) return;
+  if (now - lastLive < 200 || states.length < 3) return;
+  lastLive = now;
+  const rad = tailRadius(180);
+  const moving = lastSpeed > 2e-3;
+  const hint = spec.id === "adaptive"
+    ? `operator <strong>drifting</strong> — live h = <code>${lastH.toFixed(3)}</code>`
+    : moving
+      ? `<span class="regime-badge regime-III">circling</span> <span class="note">persistent motion — regime III candidate</span>`
+      : `<span class="regime-badge regime-I">settling</span> <span class="note">approaching a point — regime I / II</span>`;
+  $("readout").innerHTML = `
+    <div>${hint}</div>
+    <div class="metrics">
+      <div class="metric"><div class="k">harmonic h</div><div class="v">${lastH.toFixed(3)}</div></div>
+      <div class="metric"><div class="k">speed ‖ẋ‖</div><div class="v">${lastSpeed.toExponential(1)}</div></div>
+      <div class="metric"><div class="k">tail radius</div><div class="v">${rad.toFixed(3)}</div></div>
+      <div class="metric"><div class="k">samples</div><div class="v">${states.length}</div></div>
+    </div>
+    <div class="note" style="margin-top:8px">${running ? "running… full verdict on Pause or when it finishes." : "press Run."}</div>`;
+}
+
+function runFullClassify(): void {
+  if (states.length < 40) return;
   const readout = $("readout");
   if (spec.id === "adaptive") {
     readout.innerHTML = `
-      <div>operator is <strong>drifting</strong> (adaptive reappraisal).</div>
-      <div style="margin-top:8px">live h = <code>${lastH.toFixed(3)}</code> · speed ‖ẋ‖ = <code>${lastSpeed.toExponential(1)}</code></div>
-      <div class="note" style="margin-top:6px">As asymmetry grows, h rises and the interior equilibrium loses stability — watch the point stop settling.</div>`;
+      <div>adaptive run — operator drifted to live h = <code>${lastH.toFixed(3)}</code>.</div>
+      <div class="note" style="margin-top:6px">The snapshot classifier assumes a fixed operator; here W changed over the run, so read the drift (h up, motion sustained) rather than a single regime label.</div>`;
     return;
   }
+  // downsample so the one-off classify stays snappy even on long runs
+  const stride = Math.max(1, Math.ceil(states.length / 1200));
+  const ds = { t: [] as number[], x: [] as number[][] };
+  for (let i = 0; i < states.length; i += stride) { ds.t.push(times[i]); ds.x.push(states[i]); }
   try {
     const game = buildGame(spec);
-    const traj: Trajectory = { dynamics, dt: times[1] - times[0] || 0.01, times: times.slice(), states: states.slice() };
+    const traj: Trajectory = { dynamics, dt: (times[1] - times[0] || 0.01) * stride, times: ds.t, states: ds.x };
     const c = classify(game, traj);
-    const cls = `regime-${c.regime}`;
     readout.innerHTML = `
-      <div><span class="regime-badge ${cls}">Regime ${c.regime}</span> <span class="note">${c.subLabel}</span></div>
+      <div><span class="regime-badge regime-${c.regime}">Regime ${c.regime}</span> <span class="note">${c.subLabel}</span></div>
       <div class="metrics">
         <div class="metric"><div class="k">harmonic h</div><div class="v">${c.harmonicFraction.toFixed(3)}</div></div>
         <div class="metric"><div class="k">welfare gap Δ</div><div class="v">${c.welfareGap === null ? "—" : c.welfareGap.toFixed(3)}</div></div>
@@ -193,7 +241,9 @@ function draw(): void {
   const W = canvas.clientWidth;
   const H = 520;
   ctx.clearRect(0, 0, W, H);
-  if (states.length < 2) { requestAnimationFrame(loop); return; }
+  // NB: never schedule the rAF loop from here — loop() owns exactly one rAF
+  // chain. Scheduling here too would double the callbacks every idle frame.
+  if (states.length < 2) return;
 
   const Q = buildTangentBasis(blocks);
   const x0 = barycenter(blocks);
@@ -250,7 +300,7 @@ function draw(): void {
 
 function loop(t?: number): void {
   draw();
-  maybeClassify(t ?? performance.now());
+  renderLive(t ?? performance.now());
   requestAnimationFrame(loop);
 }
 
